@@ -32,10 +32,10 @@ static constexpr uint32_t NB_PRE_ZYGOTE_FORK_VERSION = 6;
 // The version with critical_native support
 static constexpr uint32_t NB_CRITICAL_NATIVE_SUPPORT_VERSION = 7;
 // The version with native bridge function pointer check support
-static constexpr uint32_t NB_NB_FUNCTION_POINTER_CHECK_SUPPORT_VERSION = 8;
+static constexpr uint32_t NB_IDENTIFY_NATIVELY_BRIDGED_FUNCTION_POINTERS_VERSION = 8;
 
 static constexpr uint32_t NB_MIN_VERSION = NB_SIGNAL_VERSION;
-static constexpr uint32_t NB_MAX_VERSION = NB_NB_FUNCTION_POINTER_CHECK_SUPPORT_VERSION;
+static constexpr uint32_t NB_MAX_VERSION = NB_IDENTIFY_NATIVELY_BRIDGED_FUNCTION_POINTERS_VERSION;
 
 enum class NativeBridgeState
 {
@@ -334,7 +334,7 @@ struct NativeBridgeCallbacks
             return sizeof(uintptr_t) * 18;
         case NB_CRITICAL_NATIVE_SUPPORT_VERSION:
             return sizeof(uintptr_t) * 19;
-        case NB_NB_FUNCTION_POINTER_CHECK_SUPPORT_VERSION:
+        case NB_IDENTIFY_NATIVELY_BRIDGED_FUNCTION_POINTERS_VERSION:
             return sizeof(uintptr_t) * 20;
         default:
             return sizeof(uint32_t);
