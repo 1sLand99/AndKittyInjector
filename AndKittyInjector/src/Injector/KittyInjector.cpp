@@ -517,7 +517,7 @@ injected_info_t KittyInjector::emuInject(KittyIOFile& lib, int flags, bool use_d
                 return info;
             }
 
-            if (_nbItf.version != NB_CRITICAL_NATIVE_SUPPORT_VERSION || !_nbItf.getTrampolineWithJNICallType)
+            if (_nbItf.version < NB_CRITICAL_NATIVE_SUPPORT_VERSION || !_nbItf.getTrampolineWithJNICallType)
                 info.pJNI_OnLoad = _kMgr->trace.callFunctionFrom(fakeCaller, uintptr_t(_nbItf.getTrampoline), 4, info.dl_handle, entryName, 0, 0);
             else
                 info.pJNI_OnLoad = _kMgr->trace.callFunctionFrom(fakeCaller, uintptr_t(_nbItf.getTrampolineWithJNICallType), 5, info.dl_handle, entryName, 0, 0, kJNICallTypeRegular);

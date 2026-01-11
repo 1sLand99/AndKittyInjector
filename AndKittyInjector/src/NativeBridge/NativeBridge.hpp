@@ -31,9 +31,11 @@ static constexpr uint32_t NB_RUNTIME_NAMESPACE_VERSION = 5;
 static constexpr uint32_t NB_PRE_ZYGOTE_FORK_VERSION = 6;
 // The version with critical_native support
 static constexpr uint32_t NB_CRITICAL_NATIVE_SUPPORT_VERSION = 7;
+// The version with native bridge function pointer check support
+static constexpr uint32_t NB_NB_FUNCTION_POINTER_CHECK_SUPPORT_VERSION = 8;
 
 static constexpr uint32_t NB_MIN_VERSION = NB_SIGNAL_VERSION;
-static constexpr uint32_t NB_MAX_VERSION = NB_CRITICAL_NATIVE_SUPPORT_VERSION;
+static constexpr uint32_t NB_MAX_VERSION = NB_NB_FUNCTION_POINTER_CHECK_SUPPORT_VERSION;
 
 enum class NativeBridgeState
 {
@@ -303,6 +305,19 @@ struct NativeBridgeCallbacks
         uint32_t len,
         enum JNICallType jni_call_type);
 
+    // Check if the method pointer belongs to native_bridge address space.
+    //
+    // Parameters:
+    //   method [IN] pointer to a method implementation.
+    //
+    // Returns:
+    //   true if the method is in native bridge implementation executable address
+    //   space or in other words needs a trampoline to be able to run with native
+    //   bridge.
+    //
+    // Introduced in: version 8
+    bool (*isNativeBridgeFunctionPointer)(const void *method);
+
     static inline size_t getStructSize(uint32_t version)
     {
         switch (version)
@@ -319,6 +334,8 @@ struct NativeBridgeCallbacks
             return sizeof(uintptr_t) * 18;
         case NB_CRITICAL_NATIVE_SUPPORT_VERSION:
             return sizeof(uintptr_t) * 19;
+        case NB_NB_FUNCTION_POINTER_CHECK_SUPPORT_VERSION:
+            return sizeof(uintptr_t) * 20;
         default:
             return sizeof(uint32_t);
         }
