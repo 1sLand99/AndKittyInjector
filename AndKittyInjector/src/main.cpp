@@ -31,7 +31,7 @@
         std::this_thread::sleep_for(std::chrono::seconds(x));                                                          \
     }
 
-#define kPROGRAM_NAME "KittyInjector"
+#define kPROGRAM_NAME "AndKittyInjector"
 #define kPROGRAM_VER "5.00"
 
 bool inject(int pid,
