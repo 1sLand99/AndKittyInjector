@@ -2,47 +2,44 @@
 
 Android shared library injector based on ptrace with help of [KittyMemoryEx](https://github.com/MJx0/KittyMemoryEx).
 
-Requires C++11 or above.</br>
+Requires C++17 or above.</br>
 Inject from /data for Android
 
 <h2> Support: </h2>
 
-- [x] Tested on Android 5.0  ~ 14
+- [x] Tested on Android 5.0 ~ 16
 - [x] ABI arm, arm64, x86, x86_64
 - [x] Inject emulated arm64 & arm32 via libhoudini.so or libndk_translation.so
+- [x] Inject multiple libs at once
 - [x] Bypass android linker namespace restrictions
 - [x] memfd dlopen support
-- [x] App launch monitor
+- [x] Watch app launch and inject
+- [x] Auto launch app and inject
+- [x] Inject on dlopen breakpoint
+- [x] Inject & Unload lib after entry point execution
 - [x] Hide lib segments from /maps
-- [x] Hide lib from linker solist ( dladdr & dl_iterate_phdr )
+- [x] Hide lib from native or emu linker solist ( dladdr & dl_iterate_phdr )
 
 <h2> How to use: </h2>
 
 Make sure to chmod +x or 755
 
 ```text
-Usage: ./path/to/AndKittyInjector [-h] [-pkg] [-pid] [-lib] [ options ]
-
-Required arguments:
-   -pkg                Target app package.
-   
-   -lib                Library path to inject.
+Usage: KittyInjector [--help] [--version] --package <Name> --libs <Paths>... [--launch] [--watch] [--bp] [--delay <Micros>] [--memfd] [--free] [--hide]
 
 Optional arguments:
-   -h, --help          show available arguments.
-   
-   -pid                Target app pid.
-   
-   -dl_memfd           Use memfd_create & dlopen_ext to inject library, useful to bypass path restrictions.
-
-   -hide_maps          Try to hide lib segments from /proc/[pid]/maps.
-
-   -hide_solist        Try to remove lib from linker or NativeBridge solist.
-   
-   -watch              Monitor process launch then inject, useful if you want to inject as fast as possible.
-   
-   -delay              Set a delay in microseconds before injecting.
-   ```
+  -h, --help        shows help message and exits 
+  -v, --version     prints version information and exits 
+  --package <Name>  Target package name to inject into. [required]
+  --libs            Libraries path to be injected. [nargs: 1 or more] [required]
+  --launch          Launch process and inject. 
+  --watch           Monitor process start then inject. 
+  --bp              Inject after breakpoint hit. 
+  --delay <Micros>  Delay injection in microseconds. 
+  --memfd           Use memfd dlopen. 
+  --free            Unload library after entry point execution. 
+  --hide            Remove soinfo and remap library to anonymouse memory. 
+```
 
 <h2>Notes: </h2>
 
@@ -70,15 +67,14 @@ extern "C" jint JNIEXPORT JNI_OnLoad(JavaVM* vm, void *key)
 }
 ```
 
-- When using -watch to inject as soon as the target app launches, you may need to use -delay as well, especially when injecting emulated lib.
+- When using --launch or --watch to inject as soon as the target app launches, you may need to use --bp or --delay as well, especially when injecting emulated lib.
 
-- When using -dl_memfd and it fails then legacy dlopen will be called.
+- If injection fails, target app will be force stopped.
 
 <h2> Compile: </h2>
 
 - Make sure to have NDK, cmake and make installed and added to OS environment path.
 - Set NDK_HOME to point to NDK folder
-- You can check both [ndk-build.bat](AndKittyInjector/ndk-build.bat) and [cmake-build.bat](AndKittyInjector/cmake-build.bat)
 
 ```shell
 git clone --recursive https://github.com/MJx0/AndKittyInjector.git

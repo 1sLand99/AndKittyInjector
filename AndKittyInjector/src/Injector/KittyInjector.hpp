@@ -1,23 +1,28 @@
 #pragma once
 
-#include <KittyMemoryMgr.hpp>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <vector>
+#include <functional>
 
 #include <dlfcn.h>
 #include <android/dlext.h>
 
-#include "../NativeBridge/NativeBridge.hpp"
+#include <jni.h>
 
-#include "RemoteSyscall.hpp"
-#include "SoInfoPatch.hpp"
+#include "KittyInjectorSyscall.hpp"
+
+#include <KittyMemoryMgr.hpp>
 
 #ifdef __aarch64__
-static constexpr ElfW_(Half) kInjectorEM = EM_AARCH64;
+static constexpr KT_ElfW(Half) kInjectorEM = EM_AARCH64;
 #elif __arm__
-static constexpr ElfW_(Half) kInjectorEM = EM_ARM;
+static constexpr KT_ElfW(Half) kInjectorEM = EM_ARM;
 #elif __i386__
-static constexpr ElfW_(Half) kInjectorEM = EM_386;
+static constexpr KT_ElfW(Half) kInjectorEM = EM_386;
 #elif __x86_64__
-static constexpr ElfW_(Half) kInjectorEM = EM_X86_64;
+static constexpr KT_ElfW(Half) kInjectorEM = EM_X86_64;
 #else
 #error "Unsupported ABI"
 #endif
@@ -26,64 +31,98 @@ std::string EMachineToStr(int16_t);
 
 #define kINJ_SECRET_KEY 1337
 
-struct injected_info_t
+struct inject_elf_info_t
 {
-    bool is_native = false, is_hidden = false;
-    uintptr_t dl_handle = 0;
+    bool is_native, is_hidden;
+    uintptr_t dl_handle;
+    kitty_soinfo_t soinfo;
     ElfScanner elf;
 
-    uintptr_t pJvm = 0;
-    int secretKey = kINJ_SECRET_KEY;
-    uintptr_t pJNI_OnLoad = 0;
+    uintptr_t pJvm;
+    int secretKey;
+    uintptr_t pJNI_OnLoad;
 
-    injected_info_t() = default;
+    inject_elf_info_t()
+        : is_native(false), is_hidden(false), dl_handle(0), pJvm(0), secretKey(kINJ_SECRET_KEY), pJNI_OnLoad(0)
+    {
+    }
 
-    inline bool is_valid() const { return elf.isValid(); }
+    inline bool is_valid() const
+    {
+        return elf.isValid();
+    }
+};
+
+struct inject_elf_config_t
+{
+    int sdk, rtdl_flags, delay;
+    bool watch, launch, seize, bp, memfd, free, hide;
+    std::string package;
+    std::function<void(inject_elf_info_t &injected)> beforeEntryPoint, afterEntryPoint;
+
+    inject_elf_config_t()
+        : sdk(0), rtdl_flags(RTLD_LOCAL | RTLD_NOW), delay(0), watch(false), launch(false), seize(false), bp(false),
+          memfd(false), free(false), hide(false), beforeEntryPoint(nullptr), afterEntryPoint(nullptr)
+    {
+    }
 };
 
 class KittyInjector
 {
-private:
-    std::unique_ptr<KittyMemoryMgr> _kMgr;
+public:
+    KittyMemoryMgr *_kMgr;
 
-    RemoteSyscall _remote_syscall;
+    KittyRemoteSys _rsyscall;
 
-    uintptr_t _remote_dlopen, _remote_dlopen_ext, _remote_dlclose, _remote_dlerror;
+    uintptr_t _rbuffer;
+    std::vector<uint8_t> _backup_rbuffer;
 
-    ElfScanner _nbElf, _nbImplElf;
-    NativeBridgeCallbacks _nbItf;
+    uintptr_t _rdlopen, _rdlclose, _rdlerror, _rdlsym, _rdlopen_ext;
+    inject_elf_config_t _cfg;
 
-    SoInfoPatch _soinfo_patch;
+    uintptr_t _dl_caller;
 
 public:
-    KittyInjector() : _remote_dlopen(0), _remote_dlopen_ext(0), _remote_dlclose(0), _remote_dlerror(0)
+    KittyInjector()
+        : _kMgr(nullptr), _rbuffer(0), _rdlopen(0), _rdlclose(0), _rdlerror(0), _rdlsym(0), _rdlopen_ext(0),
+          _dl_caller(0)
     {
-        memset(&_nbItf, 0, sizeof(NativeBridgeCallbacks));
-    }
-
-    inline bool remoteContainsMap(const std::string &name) const
-    {
-        return !name.empty() && _kMgr.get() && _kMgr->isMemValid() && !KittyMemoryEx::getMapsContain(_kMgr->processID(), name).empty();
     }
 
     /**
      * Initialize injector
-     * @param pid remote process ID
-     * @param eMemOp: Memory read & write operation type [ EK_MEM_OP_SYSCALL / EK_MEM_OP_IO ]
+     * @param KittyMemoryMgr KittyMemory manager
+     * @param options Injection options
      */
-    bool init(pid_t pid, EKittyMemOP eMemOp);
+    bool init(KittyMemoryMgr *kmgr, const inject_elf_config_t &cfg);
 
-    inline bool attach() { return _kMgr.get() && _kMgr->isMemValid() && _kMgr->trace.Attach(); };
-    inline bool detach() { return _kMgr.get() && _kMgr->isMemValid() && _kMgr->trace.Detach(); }
+    inline KittyMemoryMgr *KMgr() const
+    {
+        return _kMgr;
+    }
 
-    injected_info_t injectLibrary(std::string libPath, int flags,
-        bool use_memfd_dl, bool hide_maps, bool hide_solist, std::function<void(injected_info_t& injected)> beforeEntryPoint);
+    bool validateElf(const std::string &elfPath, KT_ElfW(Ehdr) * hdr, bool *needsNB);
+    bool waitBreakpoint(bool needsNB);
+    inject_elf_info_t inject(const std::string &elfPath);
 
 private:
-    injected_info_t nativeInject(KittyIOFile& lib, int flags, bool use_dl_memfd);
-    injected_info_t emuInject(KittyIOFile& lib, int flags, bool use_dl_memfd);
-    
-    uintptr_t getJavaVM(injected_info_t &injected);
-    bool callEntryPoint(injected_info_t &injected);
-    bool hideSegmentsFromMaps(injected_info_t &injected);
+    inject_elf_info_t nativeInject(KittyIOFile &elfFile, bool *bCalldlerror = nullptr);
+    inject_elf_info_t emuInject(KittyIOFile &elfFile, bool *bCalldlerror = nullptr);
+
+    bool unloadLibrary(inject_elf_info_t &injected);
+    bool hideLibrary(inject_elf_info_t &injected);
+
+    uintptr_t getJavaVM(inject_elf_info_t &injected);
+    bool callEntryPoint(inject_elf_info_t &injected);
+
+    inline bool canUseMemfd()
+    {
+        errno = 0;
+        return !(syscall(syscall_memfd_create_n) < 0 && errno == ENOSYS);
+    }
+
+    // preinit callbacks
+    bool findNbCallbacks(nbItf_data_t *out);
+
+    std::vector<uintptr_t> findNbSoInfoRefs(const kitty_soinfo_t &soinfo);
 };

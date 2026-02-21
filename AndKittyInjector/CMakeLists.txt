@@ -1,19 +1,80 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.16)
 
-project(AndKittyInjector)
+project(AndKittyInjector
+    VERSION 1.0
+    LANGUAGES CXX
+)
 
-set(KITTYMEMORY_PATH ../KittyMemoryEx/KittyMemoryEx)
-FILE(GLOB KITTYMEMORY_SRC ${KITTYMEMORY_PATH}/*.cpp)
+# -----------------------------
+# Options
+# -----------------------------
+option(KT_DISABLE_KEYSTONE "Disable keystone support" ON)
 
-set(XDL_PATH src/xdl)
-FILE(GLOB XDL_SRC ${XDL_PATH}/*.c)
+# -----------------------------
+# C++ standard
+# -----------------------------
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -O0 -g -std=c++20 -DDEBUG -DkNO_KEYSTONE -Wno-unused-command-line-argument")
-SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Wall -Wextra -O2 -s -std=c++20 -DNDEBUG -DkNO_KEYSTONE -Wno-unused-command-line-argument")
+# -----------------------------
+# KittyMemoryEx library
+# -----------------------------
+set(KITTYMEMORY_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../KittyMemoryEx/KittyMemoryEx")
+file(GLOB KITTYMEMORY_SRC "${KITTYMEMORY_PATH}/*.cpp")
+set(KEYSTONE_LIB ${KITTYMEMORY_PATH}/Deps/Keystone/libs-android/${CMAKE_ANDROID_ARCH_ABI}/libkeystone.a)
 
-FILE(GLOB PROJ_SRC src/*.cpp src/Injector/*.cpp)
+# -----------------------------
+# Project sources
+# -----------------------------
+file(GLOB PROJ_SRC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Injector/*.cpp"
+)
 
-add_executable(AndKittyInjector ${PROJ_SRC} ${KITTYMEMORY_SRC} ${XDL_SRC})
+# -----------------------------
+# Executable
+# -----------------------------
+add_executable(AndKittyInjector
+    ${PROJ_SRC}
+    ${KITTYMEMORY_SRC}
+)
 
-target_include_directories(AndKittyInjector PUBLIC ${KITTYMEMORY_PATH} ${XDL_PATH})
-target_link_libraries(AndKittyInjector -llog)
+# -----------------------------
+# Includes
+# -----------------------------
+target_include_directories(AndKittyInjector
+    PRIVATE
+        ${KITTYMEMORY_PATH}
+)
+
+# -----------------------------
+# Compile definitions
+# -----------------------------
+target_compile_definitions(AndKittyInjector
+    PRIVATE
+        $<$<CONFIG:Debug>:DEBUG>
+        $<$<CONFIG:Release>:NDEBUG>
+        $<$<BOOL:${KT_DISABLE_KEYSTONE}>:kNO_KEYSTONE>
+)
+
+# -----------------------------
+# Compile options
+# -----------------------------
+target_compile_options(AndKittyInjector
+    PRIVATE
+        $<$<CONFIG:Debug>:-O0 -g>
+        $<$<CONFIG:Release>:-O2>
+        -Wall
+        -Wextra
+        -Werror
+        -fexceptions
+        -Wno-unused-command-line-argument
+)
+
+# -----------------------------
+# Platform-specific libraries
+# -----------------------------
+if(ANDROID)
+    target_link_libraries(AndKittyInjector PRIVATE log $<$<NOT:$<BOOL:${KT_DISABLE_KEYSTONE}>>:${KEYSTONE_LIB}>)
+endif()
