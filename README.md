@@ -25,7 +25,7 @@ Inject from /data for Android
 Make sure to chmod +x or 755
 
 ```text
-Usage: KittyInjector [--help] [--version] --package <Name> --libs <Paths>... [--launch] [--watch] [--bp] [--delay <Micros>] [--memfd] [--free] [--hide]
+Usage: AndKittyInjector [--help] [--version] --package <Name> --libs <Paths>... [--launch] [--watch] [--bp] [--delay <Micros>] [--memfd] [--free] [--hide]
 
 Optional arguments:
   -h, --help        shows help message and exits 
