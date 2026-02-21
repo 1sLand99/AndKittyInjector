@@ -41,6 +41,12 @@ Optional arguments:
   --hide            Remove soinfo and remap library to anonymouse memory. 
 ```
 
+Example:
+```shell
+# launching app and injecting 2 libs with 1 second delay
+./AndKittyInjector --package com.target.package --libs path/to/lib1 path/to/lib2 --memfd --launch --delay 1000000
+```
+
 <h2>Notes: </h2>
 
 - Do not start a thread in library constructor, instead use JNI_OnLoad:
