@@ -337,12 +337,6 @@ inject_elf_info_t KittyInjector::inject(const std::string &elfPath)
         return {};
 #else
 
-        if (!_cfg.bp && !_kMgr->nbScanner.init())
-        {
-            KITTY_LOGE("Injector: Failed to initialize NativeBridge scanner scanner!");
-            return {};
-        }
-
         // x86_64 emulates arm64, x86 emulates arm
         if (_kMgr->elfScanner.getProgramElf().header().e_machine == EM_X86_64 && libHdr.e_machine != EM_AARCH64)
         {
@@ -646,10 +640,19 @@ inject_elf_info_t KittyInjector::nativeInject(KittyIOFile &elfFile, bool *bCalld
 
 inject_elf_info_t KittyInjector::emuInject(KittyIOFile &elfFile, bool *bCalldlerror)
 {
+    _kMgr->nbScanner.init();
+
     auto &nb = _kMgr->nbScanner;
     auto nbData = nb.nbItfData();
 
     KITTY_LOGI("emuInject: NativeBridge version %d.", nbData.version);
+
+    uintptr_t pNbInitialized = uintptr_t(nb.fnNativeBridgeInitialized);
+    if (pNbInitialized == 0 || _kMgr->trace.callFunction(pNbInitialized) == 0)
+    {
+        KITTY_LOGE("emuInject: NativeBridge is not initialized yet, maybe use --bp or --delay.");
+        return {};
+    }
 
     if ((nbData.version < KT_NB_NAMESPACE_VERSION && !nbData.loadLibrary) ||
         (nbData.version >= KT_NB_NAMESPACE_VERSION && !nbData.loadLibraryExt))
@@ -660,13 +663,6 @@ inject_elf_info_t KittyInjector::emuInject(KittyIOFile &elfFile, bool *bCalldler
     if (!nbData.loadLibrary && !nbData.loadLibraryExt)
     {
         KITTY_LOGE("emuInject: NativeBridge callbacks data is not valid!");
-        return {};
-    }
-
-    uintptr_t pNbInitialized = uintptr_t(nb.fnNativeBridgeInitialized);
-    if (pNbInitialized && _kMgr->trace.callFunction(pNbInitialized) == 0)
-    {
-        KITTY_LOGE("emuInject: NativeBridge is not initialized yet, maybe use --bp or --delay.");
         return {};
     }
 
