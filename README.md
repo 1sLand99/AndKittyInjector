@@ -25,17 +25,17 @@ Inject from /data for Android
 Make sure to chmod +x or 755
 
 ```text
-Usage: AndKittyInjector [--help] [--version] --package <Name> --libs <Paths>... [--launch] [--watch] [--bp] [--delay <Micros>] [--memfd] [--free] [--hide]
+Usage: AndKittyInjector [--help] [--version] --package <name> --libs <paths>... [--launch] [--watch] [--bp] [--delay <micros>] [--memfd] [--free] [--hide]
 
 Optional arguments:
   -h, --help        shows help message and exits 
   -v, --version     prints version information and exits 
-  --package <Name>  Target package name to inject into. [required]
+  --package <name>  Target package name to inject into. [required]
   --libs            Libraries path to be injected. [nargs: 1 or more] [required]
   --launch          Launch process and inject. 
   --watch           Monitor process start then inject. 
   --bp              Inject after breakpoint hit. 
-  --delay <Micros>  Delay injection in microseconds. 
+  --delay <micros>  Delay injection in microseconds. 
   --memfd           Use memfd dlopen. 
   --free            Unload library after entry point execution. 
   --hide            Remove soinfo and remap library to anonymouse memory. 
