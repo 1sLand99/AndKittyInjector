@@ -32,7 +32,7 @@
     }
 
 #define kPROGRAM_NAME "AndKittyInjector"
-#define kPROGRAM_VER "5.00"
+#define kPROGRAM_VER "5.01"
 
 bool inject(int pid,
             const std::vector<std::string> &libs,
@@ -60,7 +60,7 @@ int main(int argc, char *args[])
         .help("Target package name to inject into.")
         .required()
         .store_into(inj_cfg.package)
-        .metavar("<Name>");
+        .metavar("<name>");
 
     std::vector<std::string> libs;
     program.add_argument("--libs")
@@ -68,7 +68,7 @@ int main(int argc, char *args[])
         .required()
         .nargs(argparse::nargs_pattern::at_least_one)
         .store_into(libs)
-        .metavar("<Paths>");
+        .metavar("<paths>");
 
     program.add_argument("--launch").help("Launch process and inject.").store_into(inj_cfg.launch);
 
@@ -79,7 +79,7 @@ int main(int argc, char *args[])
     program.add_argument("--delay")
         .help("Delay injection in microseconds.")
         .store_into(inj_cfg.delay)
-        .metavar("<Micros>");
+        .metavar("<micros>");
 
     program.add_argument("--memfd").help("Use memfd dlopen.").store_into(inj_cfg.memfd);
 
