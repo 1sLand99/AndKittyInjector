@@ -593,7 +593,7 @@ inject_elf_info_t KittyInjector::nativeInject(KittyIOFile &elfFile, bool *bCalld
         // restrict further modifications to remote memfd
         _rsyscall.rmemfd_seal(rmemfd, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE | F_SEAL_SEAL);
 
-        android_dlextinfo extinfo;
+        android_dlextinfo extinfo = {};
         extinfo.flags = ANDROID_DLEXT_USE_LIBRARY_FD;
         extinfo.library_fd = rmemfd;
 
